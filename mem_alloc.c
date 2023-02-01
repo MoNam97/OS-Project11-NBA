@@ -11,6 +11,14 @@ int allocation_algorithm = -1;   // 0 = first fit, 1 = buddy memory
 long long int maximum_size = 0;
 long long int minimum_size = 0;
 
+#def struct MetaData {
+    struct MetaData *next;
+    struct MetaData *prev;
+    long long int size;
+    int is_free;
+
+}MetaData;
+
 void set_allocation_algorithm(int algorithm) {
     if (allocation_algorithm_set == 0)
     {
@@ -43,7 +51,11 @@ void set_minimum_size(long long int size) {
     minimum_size = size;
 }
 
-void *my_malloc(long long int size) {
+void *mem_alloc_first_fit(long long int size, char fill) {
+
+}
+
+void *my_malloc(long long int size, char fill) {
     allocation_algorithm_set = 1;
     if (allocation_algorithm == -1 || size <= 0)
     {
@@ -60,10 +72,10 @@ void *my_malloc(long long int size) {
     }
     if (allocation_algorithm == 0)
     {
-        return mem_alloc_first_fit(size);
+        return mem_alloc_first_fit(size, fill);
     }
     else
     {
-        return mem_alloc_buddy(size);
+        return mem_alloc_buddy(size,   fill);
     }
 }
