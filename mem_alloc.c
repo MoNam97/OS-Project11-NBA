@@ -42,14 +42,7 @@ void buddy_memory_initialization(){
         strcpy(error_message, "Not enough memory for heap");
         return;
     }
-    blocks_head = (MetaData *)heap_start;
-    blocks_head->next = NULL;
-    blocks_head->prev = NULL;
-    blocks_head->is_free = 1;
-    blocks_head->start = blocks_head + MetaDataSize;
-    blocks_head->size = max_heap_size - MetaDataSize;
-
-
+    
 }
 
 void set_allocation_algorithm(int algorithm) {
@@ -59,6 +52,8 @@ void set_allocation_algorithm(int algorithm) {
         allocation_algorithm = algorithm;
         if (algorithm == FIRST_FIT)
             first_fit_initialization();
+        else if (algorithm == BUDDY_MEMORY)
+            buddy_memory_initialization();
         
     }
 }
@@ -129,7 +124,8 @@ void *mem_alloc_first_fit(size_t size, char fill) {
             }
             else
             {
-                // change the size of the block?
+                // [ ] TODO: handle the no man's land portion of the size of the block in free function.
+                current->size = size;
                 current->is_free = 0;
                 memset(current->start, fill, size);
                 return current->start;
@@ -139,13 +135,14 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     }
 
     /*   If there is no free block with adequate size, allocate a new block.  */
-    MetaData *new_block = (MetaData *)sbrk(size + MetaDataSize);
+    size_t empty_space = sbrk(0) - last_block->start - last_block->size;
+    MetaData *new_block = (MetaData *)sbrk(size + MetaDataSize - empty_space);
     if (new_block == -1)
     {
-        // sbrk(-size - MetaDataSize);
         strcpy(error_message, "sbrk failed. Heap can not be extended.");
         return NULL;
     }
+    new_block -= empty_space;
     new_block->next = NULL;
     new_block->prev = last_block;
     last_block->next = new_block;
