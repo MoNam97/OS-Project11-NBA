@@ -9,7 +9,7 @@
 typedef struct MetaData {
     struct MetaData *next;
     struct MetaData *prev;
-    int is_free;
+    char is_free;
     void *start;
     size_t size;
 } MetaData;

@@ -15,14 +15,41 @@ int allocation_algorithm = UNINITIALIZED;   // 0 = first fit, 1 = buddy memory
 size_t maximum_size = 0;
 size_t minimum_size = 0;
 
-void * memory_start = NULL;
+void * heap_start = NULL;
+size_t max_heap_size = 0;
 MetaData *blocks_head = NULL;
 // MetaData *allocated_tail = NULL;
 // MetaData *free_head = NULL;
 // MetaData *free_tail = NULL;
 
-void first_fit_initialize(){
-    memory_start = sbrk(0);
+void first_fit_initialization(){
+    heap_start = sbrk(0);
+}
+
+void buddy_memory_initialization(){
+    heap_start = sbrk(0);
+
+    max_heap_size = 32;
+    void * heap_end = sbrk(max_heap_size);
+    /* for test keep max_heap at 8192 */
+    while (heap_end != -1 && max_heap_size < 8192)
+    {
+        heap_end = sbrk(-max_heap_size);
+        max_heap_size *= 2;
+        heap_end = sbrk(max_heap_size);
+    }
+    if (max_heap_size <= MetaDataSize){
+        strcpy(error_message, "Not enough memory for heap");
+        return;
+    }
+    blocks_head = (MetaData *)heap_start;
+    blocks_head->next = NULL;
+    blocks_head->prev = NULL;
+    blocks_head->is_free = 1;
+    blocks_head->start = blocks_head + MetaDataSize;
+    blocks_head->size = max_heap_size - MetaDataSize;
+
+
 }
 
 void set_allocation_algorithm(int algorithm) {
@@ -31,7 +58,7 @@ void set_allocation_algorithm(int algorithm) {
         allocation_algorithm_set = 1;
         allocation_algorithm = algorithm;
         if (algorithm == FIRST_FIT)
-            first_fit_initialize();
+            first_fit_initialization();
         
     }
 }
@@ -137,7 +164,7 @@ void *my_malloc(size_t size, char fill) {
     allocation_algorithm_set = 1;
     if (allocation_algorithm == -1 || size <= 0)
     {
-        printf("Memory allocation failed. Please set allocation algorithm and size > 0\n");
+        strcpy(error_message, "Memory allocation failed. Please set allocation algorithm and size > 0\n");
         return NULL;
     }
     if (maximum_size_set && size > maximum_size)
@@ -156,11 +183,11 @@ void *my_malloc(size_t size, char fill) {
     }
     else
     {
-        return mem_alloc_buddy(size,   fill);
+        return mem_alloc_buddy(size, fill);
     }
 }
 
-
-int main () {
-    printf("%lu\n", sizeof(MetaData));
+int main(){
+    
+    printf("%d  =  %lu\n", MetaDataSize, sizeof(MetaData));
 }
