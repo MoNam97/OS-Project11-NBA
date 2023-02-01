@@ -16,10 +16,10 @@ size_t maximum_size = 0;
 size_t minimum_size = 0;
 
 void * memory_start = NULL;
-MetaData *allocated_head = NULL;
-MetaData *allocated_tail = NULL;
-MetaData *free_head = NULL;
-MetaData *free_tail = NULL;
+MetaData *blocks_head = NULL;
+// MetaData *allocated_tail = NULL;
+// MetaData *free_head = NULL;
+// MetaData *free_tail = NULL;
 
 void first_fit_initialize(){
     memory_start = sbrk(0);
@@ -60,26 +60,73 @@ void set_minimum_size(size_t size) {
     minimum_size = size;
 }
 
-
-
 void *mem_alloc_first_fit(size_t size, char fill) {
-    if (free_head == NULL)
+    if (blocks_head == NULL)
     {
-        MetaData *new_block = (MetaData *)sbrk(size + MetaDataSize);
-        if (new_block == -1)
+        blocks_head = (MetaData *)sbrk(size + MetaDataSize);
+        if (blocks_head == -1)
         {
             strcpy(error_message, "sbrk failed.");
             return NULL;
         }
-        new_block->next = NULL;
-        new_block->prev = NULL;
-        new_block->is_free = 0;
-        new_block->start = new_block + MetaDataSize;
-        new_block->size = size;
-        
-        allocated_head = new_block;
-        return new_block->start;
+        blocks_head->next = NULL;
+        blocks_head->prev = NULL;
+        blocks_head->is_free = 0;
+        blocks_head->start = blocks_head + MetaDataSize;
+        blocks_head->size = size;
+        memset(blocks_head->start, fill, size);
+        return blocks_head->start;
     }
+
+    /*   If there is a free block with adequate size, allocate the new block to it.  */
+    MetaData *last_block = NULL;
+    MetaData *current = blocks_head;
+    while (current != NULL) {
+        if (current->is_free == 1 && current->size >= size)
+            if (current->size - size > MetaDataSize)
+            {
+                MetaData *new_block = (MetaData *)(current->start + size);
+                new_block->next = current->next;
+                new_block->prev = current;
+                if (current->next != NULL)
+                    current->next->prev = new_block;
+                current->next = new_block;
+
+                new_block->is_free = 1;
+                new_block->start = new_block + MetaDataSize;
+                new_block->size = current->size - size - MetaDataSize;
+                current->is_free = 0;
+                current->size = size;
+                memset(current->start, fill, size);
+                return current->start;
+            }
+            else
+            {
+                // change the size of the block?
+                current->is_free = 0;
+                memset(current->start, fill, size);
+                return current->start;
+            }
+        last_block = current;
+        current = current->next;
+    }
+
+    /*   If there is no free block with adequate size, allocate a new block.  */
+    MetaData *new_block = (MetaData *)sbrk(size + MetaDataSize);
+    if (new_block == -1)
+    {
+        // sbrk(-size - MetaDataSize);
+        strcpy(error_message, "sbrk failed. Heap can not be extended.");
+        return NULL;
+    }
+    new_block->next = NULL;
+    new_block->prev = last_block;
+    last_block->next = new_block;
+    new_block->is_free = 0;
+    new_block->start = new_block + MetaDataSize;
+    new_block->size = size;
+    memset(new_block->start, fill, size);
+    return new_block->start;
 }
 
 void *mem_alloc_buddy(size_t size, char fill) {
