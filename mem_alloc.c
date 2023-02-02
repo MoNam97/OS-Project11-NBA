@@ -207,6 +207,40 @@ void my_free(void *block_ptr){
     block->is_free = 1;
     merge_blocks(block);
 }
+
+void merge_blocks(MetaData block){
+    MetaData prev_block = block->prev;
+    MetaData next_block = block->next;
+
+    if (prev_block != NULL && prev_block->is_free == 1) {
+        prev_block->next = block->next;
+        if (next_block != NULL) {
+            next_block->prev = prev_block;
+        }
+        prev_block->size = ((void *)block + MetaDataSize) - ((void *)prev_block + MetaDataSize) + block->size;
+
+        if (next_block != NULL && next_block->is_free == 1) {
+            prev_block->next = next_block->next;
+            if (next_block->next != NULL) {
+                next_block->next->prev = prev_block;
+            }
+            prev_block->size = ((void *)next_block + MetaDataSize) - ((void *)prev_block + MetaDataSize) + next_block->size;
+        }
+        return;
+    }
+    else if (next_block != NULL && next_block->is_free == 1) {
+        block->is_free = 1;
+        block->size = ((void *)next_block + MetaDataSize) - ((void *)block + MetaDataSize) + next_block->size;
+        block->next = next_block->next;
+        next_block = next_block->next;
+        if (next_block != NULL) {
+            next_block->prev = block;
+        }
+        return;
+    }
+}
+
+
 int main(){
     
     printf("%d  =  %lu\n", MetaDataSize, sizeof(MetaData));
