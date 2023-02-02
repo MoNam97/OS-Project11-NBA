@@ -51,47 +51,65 @@ int main(){
     //     printf("%ld\n", cond);
     // }
     // printf("\n%ld\n", counter);
-    size_t base  = (unsigned long)sbrk(0);
-    printf("%lu\n", base);
-    int resource = RLIMIT_DATA;
-    struct rlimit limit;
-    int res = getrlimit(resource, &limit);
-    printf("get:%d\n", res);
-    printf("\nrlim_cur = %lu\n", limit.rlim_cur);
-    printf("\nrlim_max = %lu\n", limit.rlim_max);
-    limit.rlim_cur = 40960000;
-    limit.rlim_max = 40960000;
+    // size_t base  = (unsigned long)sbrk(0);
+    // printf("%lu\n", base);
+    // int resource = RLIMIT_DATA;
+    // struct rlimit limit;
+    // int res = getrlimit(resource, &limit);
+    // printf("get:%d\n", res);
+    // printf("\nrlim_cur = %lu\n", limit.rlim_cur);
+    // printf("\nrlim_max = %lu\n", limit.rlim_max);
+    // limit.rlim_cur = 40960000;
+    // limit.rlim_max = 40960000;
 
-    res = setrlimit(resource, &limit);
-    printf("set:%d\n", res);
-    getrlimit(resource, &limit);
-    printf("\nrlim_cur = %lu\n", limit.rlim_cur);
-    printf("\nrlim_max = %lu\n", limit.rlim_max);
-    printf("%ld\t..\t%ld\n", (long)sbrk(0) , (long)sbrk(0) + limit.rlim_cur);
-    printf("........\n");
-    long cond = 0;
-    long int counter = 0;
-    while (cond != -1)
+    // res = setrlimit(resource, &limit);
+    // printf("set:%d\n", res);
+    // getrlimit(resource, &limit);
+    // printf("\nrlim_cur = %lu\n", limit.rlim_cur);
+    // printf("\nrlim_max = %lu\n", limit.rlim_max);
+    // printf("%ld\t..\t%ld\n", (long)sbrk(0) , (long)sbrk(0) + limit.rlim_cur);
+    // printf("........\n");
+    // long cond = 0;
+    // long int counter = 0;
+    // while (cond != -1)
+    // {
+    //     counter++;
+    //     cond = (long)sbrk(4096);
+    //     printf("%ld\n", cond);
+    // }
+    // printf("\n%ld\n", counter);
+    // printf("%ld\n", sbrk(0));
+
+    // printf("%ld\n", sbrk(-4096));
+    // printf("back: %ld\n", sbrk(0));
+
+
+    // printf("%ld\n", sbrk(1000));
+    // printf("%ld\n", sbrk(1000));
+    // printf("%ld\n", sbrk(1000));
+    // printf("%ld\n", sbrk(1000));
+    // printf("%ld\n", sbrk(10));
+
+    // printf("check: %ld\n", sbrk(0));
+    printf("%lu\n", (long)sbrk(0));
+    unsigned long max_heap_size = 4096;
+    void * heap_end = sbrk(max_heap_size);
+    int counter = 0;
+    while (heap_end != (void *)-1)
     {
         counter++;
-        cond = (long)sbrk(4096);
-        printf("%ld\n", cond);
+        heap_end = sbrk(-max_heap_size);
+        max_heap_size *= 2;
+        heap_end = sbrk(max_heap_size);
+        printf("%lu\t\t\t%lu\n", (long)sbrk(0), max_heap_size);
     }
-    printf("\n%ld\n", counter);
-    printf("%ld\n", sbrk(0));
+    printf("\n\n%lu\t\t\t%lu\n", (long)sbrk(0), max_heap_size);
+    sbrk(-max_heap_size);
+    printf("%d\n", counter);
+    printf("%lu\n", (unsigned long)sbrk(max_heap_size));
+    printf("%lu\n", (unsigned long)sbrk(max_heap_size));
+    printf("%lu\n", (unsigned long)sbrk(max_heap_size/2));
+    printf("%lu\t\t\t%lu\n", (long)sbrk(0), max_heap_size);
 
-    printf("%ld\n", sbrk(-4096));
-    printf("back: %ld\n", sbrk(0));
-
-
-    printf("%ld\n", sbrk(1000));
-    printf("%ld\n", sbrk(1000));
-    printf("%ld\n", sbrk(1000));
-    printf("%ld\n", sbrk(1000));
-    printf("%ld\n", sbrk(10));
-
-    printf("check: %ld\n", sbrk(0));
-
-    printf("%lu\n", sbrk(0) - base);
     return 0;
 }

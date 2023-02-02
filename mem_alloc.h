@@ -1,3 +1,6 @@
+#ifndef MEM_ALLOC_H
+#define MEM_ALLOC_H
+
 #include <stddef.h>
 
 #define FIRST_FIT 0
@@ -23,3 +26,6 @@ void set_minimum_size(size_t size);
 void *my_malloc(size_t size, char fill);
 
 void *mem_alloc_first_fit(size_t size, char fill);
+
+
+#endif

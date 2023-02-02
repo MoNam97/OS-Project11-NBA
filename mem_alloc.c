@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <string.h>
 #include "mem_alloc.h"
+#include "buddy_alloc.h"
 //////////////////////////////////
 #include <stdio.h>
 // [ ] TODO: Handle Thread Safety
@@ -16,11 +17,8 @@ size_t maximum_size = 0;
 size_t minimum_size = 0;
 
 void * heap_start = NULL;
-size_t max_heap_size = 0;
 MetaData *blocks_head = NULL;
-// MetaData *allocated_tail = NULL;
-// MetaData *free_head = NULL;
-// MetaData *free_tail = NULL;
+
 
 void first_fit_initialization(){
     heap_start = sbrk(0);
@@ -29,20 +27,24 @@ void first_fit_initialization(){
 void buddy_memory_initialization(){
     heap_start = sbrk(0);
 
-    max_heap_size = 32;
+    size_t max_heap_size = BUDDY_MIN_BLOCK_SIZE;
     void * heap_end = sbrk(max_heap_size);
-    /* for test keep max_heap at 8192 */
-    while (heap_end != -1 && max_heap_size < 8192)
+    /* for test keep max_order at 8 should be BUDDY_MAX_ORDER */
+    int order = 0;
+    while (heap_end != -1 && order < 8)
     {
+        order++;
         heap_end = sbrk(-max_heap_size);
         max_heap_size *= 2;
         heap_end = sbrk(max_heap_size);
     }
-    if (max_heap_size <= MetaDataSize){
+    max_heap_size /= 2;
+    order--;
+    if (order < 0){
         strcpy(error_message, "Not enough memory for heap");
         return;
     }
-    
+    buddy_var_init(order, max_heap_size, heap_start);
 }
 
 void set_allocation_algorithm(int algorithm) {
@@ -153,9 +155,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     return new_block->start;
 }
 
-void *mem_alloc_buddy(size_t size, char fill) {
 
-}
 
 void *my_malloc(size_t size, char fill) {
     allocation_algorithm_set = 1;
