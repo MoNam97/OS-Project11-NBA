@@ -261,6 +261,35 @@ void *my_realloc(void *block_ptr, size_t size, char fill) {
     return new_start;
 }
 
+void show_buddy_memory() {
+
+}
+
+void show_first_fit() {
+    MetaData * block = blocks_head;
+    printf("Allocated blocks:\n");
+    while(block != NULL) {
+        if(!block->is_free) {
+            printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+        }
+        block = get_block(block->next);
+    }
+    printf("\nFree blocks:\n");
+    while(block != NULL) {
+        if(block->is_free) {
+            printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+        }
+        block = get_block(block->next);
+    }
+}
+
+void show_stats() {
+    if(allocation_algorithm)
+        show_buddy_memory();
+    else
+        show_first_fit();
+}
+
 
 int main(){
     
