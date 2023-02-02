@@ -75,7 +75,7 @@ void * mem_alloc_buddy(size_t size, char fill) {
         free_blocks_list[i] = free_blocks_list[i]->next;
         while (i > target_order) {
             i--;
-            block->size = block->size / 2;
+            block->size = (block->size + BUDDY_BLOCK_HEADER_SIZE) / 2 - BUDDY_BLOCK_HEADER_SIZE;
             block_header *buddy = buddy_of(block);
             buddy->size = block->size;
             buddy->next = NULL;

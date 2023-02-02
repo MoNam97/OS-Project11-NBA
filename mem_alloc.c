@@ -31,7 +31,7 @@ void buddy_memory_initialization(){
     void * heap_end = sbrk(max_heap_size);
     /* for test keep max_order at 8 should be BUDDY_MAX_ORDER */
     int order = 0;
-    while (heap_end != -1 && order < 8)
+    while (heap_end != (void *)-1 && order < 8)
     {
         order++;
         heap_end = sbrk(-max_heap_size);
@@ -44,7 +44,7 @@ void buddy_memory_initialization(){
         strcpy(error_message, "Not enough memory for heap");
         return;
     }
-    buddy_var_init(order, max_heap_size, heap_start);
+    buddy_variable_init(order, max_heap_size, heap_start);
 }
 
 void set_allocation_algorithm(int algorithm) {
@@ -88,7 +88,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     if (blocks_head == NULL)
     {
         blocks_head = (MetaData *)sbrk(size + MetaDataSize);
-        if (blocks_head == -1)
+        if (blocks_head == (void *)-1)
         {
             strcpy(error_message, "sbrk failed.");
             return NULL;
@@ -139,7 +139,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     /*   If there is no free block with adequate size, allocate a new block.  */
     size_t empty_space = sbrk(0) - last_block->start - last_block->size;
     MetaData *new_block = (MetaData *)sbrk(size + MetaDataSize - empty_space);
-    if (new_block == -1)
+    if (new_block == (void *)-1)
     {
         strcpy(error_message, "sbrk failed. Heap can not be extended.");
         return NULL;
@@ -242,6 +242,6 @@ void merge_blocks(MetaData * block){
 
 
 int main(){
-    
+    printf("%d  =  %lu\n", MetaDataSize, sizeof(block_header));
     printf("%d  =  %lu\n", MetaDataSize, sizeof(MetaData));
 }
