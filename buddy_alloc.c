@@ -78,10 +78,11 @@ void * mem_alloc_buddy(size_t size, char fill) {
             block->size = block->size / 2;
             block_header *buddy = buddy_of(block);
             buddy->size = block->size;
-            buddy->next = free_blocks_list[i];
+            buddy->next = NULL;
             free_blocks_list[i] = buddy;
         }
         block->size = size;
+        memset(block + BUDDY_BLOCK_HEADER_SIZE, fill, size);
         return block + BUDDY_BLOCK_HEADER_SIZE;
     }
 
