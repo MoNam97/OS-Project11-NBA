@@ -9,6 +9,8 @@
 
 #define MetaDataSize 40
 
+char error_message[100];
+
 typedef struct MetaData {
     struct MetaData *next;
     struct MetaData *prev;

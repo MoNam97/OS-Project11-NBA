@@ -6,7 +6,7 @@
 //////////////////////////////////
 #include <stdio.h>
 // [ ] TODO: Handle Thread Safety
-char error_message[100];
+
 
 
 int allocation_algorithm_set = 0;
