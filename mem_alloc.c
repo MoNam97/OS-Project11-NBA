@@ -240,6 +240,27 @@ void merge_blocks(MetaData * block){
     }
 }
 
+void *my_realloc(void *block_ptr, size_t size, char fill) {
+    if (size <= 0) {
+        my_free(block_ptr);
+        return NULL;
+    }
+    if (block_ptr == NULL) {
+        return my_malloc(size, fill);
+    }
+    MetaData * block = get_block(block_ptr);
+    size_t init_size = block->size;
+    char buffer[block->size];
+
+    memcpy(buffer, block->size, init_size);
+
+    my_free(block_ptr);
+
+    void * new_start = my_malloc(size, fill);
+    memcpy(new_start, buffer, MIN(init_size, size));
+    return new_start;
+}
+
 
 int main(){
     
