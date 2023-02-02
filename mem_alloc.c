@@ -267,20 +267,31 @@ void show_buddy_memory() {
 
 void show_first_fit() {
     MetaData * block = blocks_head;
+    size_t allocate_size = 0;
+    size_t free_size = 0;
+    
     printf("Allocated blocks:\n");
     while(block != NULL) {
         if(!block->is_free) {
             printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+            allocate_size += block->size;
         }
+        allocate_size +=  MetaDataSize;
         block = get_block(block->next);
     }
+
     printf("\nFree blocks:\n");
     while(block != NULL) {
         if(block->is_free) {
             printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+            free_size += block->size
         }
         block = get_block(block->next);
     }
+
+    printf("\nAllocated size = %d\n", allocate_size);
+    printf("Free size = %d\n", free_size);
+    printf("sbrk minus the space devoted to blocks = %d\n", sbrk(0) - allocate_size - free_size);
 }
 
 void show_stats() {
