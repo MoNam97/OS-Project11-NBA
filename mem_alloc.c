@@ -195,6 +195,18 @@ MetaData get_block(void* block_ptr){
     block = (MetaData)(block_ptr - (void*)MetaDataSize);
     return block;
 }
+
+void my_free(void *block_ptr){
+    if (block_ptr == NULL){
+        return;
+    }
+    MetaData block = get_block(block_ptr);
+    if (block == NULL){
+        return;
+    }
+    block->is_free = 1;
+    merge_blocks(block);
+}
 int main(){
     
     printf("%d  =  %lu\n", MetaDataSize, sizeof(MetaData));
