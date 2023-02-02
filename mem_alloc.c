@@ -240,6 +240,67 @@ void merge_blocks(MetaData * curr_block){
     }
 }
 
+void *my_realloc(void *block_ptr, size_t size, char fill) {
+    if (size <= 0) {
+        my_free(block_ptr);
+        return NULL;
+    }
+    if (block_ptr == NULL) {
+        return my_malloc(size, fill);
+    }
+    MetaData * block = get_block(block_ptr);
+    size_t init_size = block->size;
+    char buffer[block->size];
+
+    memcpy(buffer, block->size, init_size);
+
+    my_free(block_ptr);
+
+    void * new_start = my_malloc(size, fill);
+    memcpy(new_start, buffer, MIN(init_size, size));
+    return new_start;
+}
+
+void show_buddy_memory() {
+
+}
+
+void show_first_fit() {
+    MetaData * block = blocks_head;
+    size_t allocate_size = 0;
+    size_t free_size = 0;
+    
+    printf("Allocated blocks:\n");
+    while(block != NULL) {
+        if(!block->is_free) {
+            printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+            allocate_size += block->size;
+        }
+        allocate_size +=  MetaDataSize;
+        block = get_block(block->next);
+    }
+
+    printf("\nFree blocks:\n");
+    while(block != NULL) {
+        if(block->is_free) {
+            printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+            free_size += block->size
+        }
+        block = get_block(block->next);
+    }
+
+    printf("\nAllocated size = %d\n", allocate_size);
+    printf("Free size = %d\n", free_size);
+    printf("sbrk minus the space devoted to blocks = %d\n", sbrk(0) - allocate_size - free_size);
+}
+
+void show_stats() {
+    if(allocation_algorithm)
+        show_buddy_memory();
+    else
+        show_first_fit();
+}
+
 
 int main(){
     
