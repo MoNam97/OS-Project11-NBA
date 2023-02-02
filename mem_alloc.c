@@ -44,7 +44,7 @@ void buddy_memory_initialization(){
         strcpy(error_message, "Not enough memory for heap");
         return;
     }
-    buddy_var_init(order, max_heap_size, heap_start);
+    buddy_variable_init(order, max_heap_size, heap_start);
 }
 
 void set_allocation_algorithm(int algorithm) {
@@ -208,16 +208,16 @@ void my_free(void *block_ptr){
     merge_blocks(block);
 }
 
-void merge_blocks(MetaData * block){
-    MetaData * prev_block = block->prev;
-    MetaData * next_block = block->next;
+void merge_blocks(MetaData * curr_block){
+    MetaData * prev_block = curr_block->prev;
+    MetaData * next_block = curr_block->next;
 
     if (prev_block != NULL && prev_block->is_free == 1) {
-        prev_block->next = block->next;
+        prev_block->next = curr_block->next;
         if (next_block != NULL) {
             next_block->prev = prev_block;
         }
-        prev_block->size = ((void *)block + MetaDataSize) - ((void *)prev_block + MetaDataSize) + block->size;
+        prev_block->size = ((void *)curr_block + MetaDataSize) - ((void *)prev_block + MetaDataSize) + curr_block->size;
 
         if (next_block != NULL && next_block->is_free == 1) {
             prev_block->next = next_block->next;
@@ -229,12 +229,12 @@ void merge_blocks(MetaData * block){
         return;
     }
     else if (next_block != NULL && next_block->is_free == 1) {
-        block->is_free = 1;
-        block->size = ((void *)next_block + MetaDataSize) - ((void *)block + MetaDataSize) + next_block->size;
-        block->next = next_block->next;
+        curr_block->is_free = 1;
+        curr_block->size = ((void *)next_block + MetaDataSize) - ((void *)curr_block + MetaDataSize) + next_block->size;
+        curr_block->next = next_block->next;
         next_block = next_block->next;
         if (next_block != NULL) {
-            next_block->prev = block;
+            next_block->prev = curr_block;
         }
         return;
     }
