@@ -112,5 +112,5 @@ void add_to_free_list(block_header * block, int order) {
         free_blocks_list[order] = block;
     else
         prev->next = block;
-    
+    block->next = NULL;   
 }

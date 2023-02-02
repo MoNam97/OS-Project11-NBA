@@ -184,15 +184,15 @@ void *my_malloc(size_t size, char fill) {
     }
 }
 
-MetaData get_block(void* block_ptr){
+MetaData * get_block(void* block_ptr){
     if (block_ptr == NULL){
         return NULL;
     }
     if (block_ptr < ((void*)blocks_head+MetaDataSize) || block_ptr > sbrk(0)) {
         return NULL;
     }
-    block_ptr block = NULL;
-    block = (MetaData)(block_ptr - (void*)MetaDataSize);
+    MetaData * block = NULL;
+    block = (MetaData *)(block_ptr - (void*)MetaDataSize);
     return block;
 }
 
@@ -200,7 +200,7 @@ void my_free(void *block_ptr){
     if (block_ptr == NULL){
         return;
     }
-    MetaData block = get_block(block_ptr);
+    MetaData * block = get_block(block_ptr);
     if (block == NULL){
         return;
     }
@@ -208,9 +208,9 @@ void my_free(void *block_ptr){
     merge_blocks(block);
 }
 
-void merge_blocks(MetaData block){
-    MetaData prev_block = block->prev;
-    MetaData next_block = block->next;
+void merge_blocks(MetaData * block){
+    MetaData * prev_block = block->prev;
+    MetaData * next_block = block->next;
 
     if (prev_block != NULL && prev_block->is_free == 1) {
         prev_block->next = block->next;
