@@ -283,17 +283,17 @@ void show_first_fit() {
             allocate_size += block->size;
         }
         allocate_size +=  MetaDataSize;
-        block = get_block(block->next); // why do you need to get the block again?? just use block->next 
-        // actually this is a bug. can you tell me why?? explain for yourself how get_block works!
+        block = block->next;
     }
-    // where do you reset the block pointer? so that it can enter the next while loop ??
+    
     printf("\nFree blocks:\n");
+    block = blocks_head;
     while(block != NULL) {
         if (block->is_free) {
             printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
             free_size += block->size;
         }
-        block = get_block(block->next);
+        block = block->next;
     }
 
     printf("\nAllocated size = %d\n", allocate_size);
