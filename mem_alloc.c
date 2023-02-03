@@ -261,9 +261,6 @@ void *my_realloc(void *block_ptr, size_t size, char fill) {
     return new_start;
 }
 
-void show_buddy_memory() {
-
-}
 
 void show_first_fit() {
     MetaData * block = blocks_head;
@@ -277,14 +274,15 @@ void show_first_fit() {
             allocate_size += block->size;
         }
         allocate_size +=  MetaDataSize;
-        block = get_block(block->next);
+        block = get_block(block->next); // why do you need to get the block again?? just use block->next 
+        // actually this is a bug. can you tell me why?? explain for yourself how get_block works!
     }
-
+    // where do you reset the block pointer? so that it can enter the next while loop ??
     printf("\nFree blocks:\n");
     while(block != NULL) {
         if(block->is_free) {
             printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
-            free_size += block->size
+            free_size += block->size;
         }
         block = get_block(block->next);
     }
@@ -295,6 +293,11 @@ void show_first_fit() {
 }
 
 void show_stats() {
+    if (allocation_algorithm_set == 0)
+    {
+        strcpy(error_message, "Please set allocation algorithm first.");
+        return;
+    }
     if(allocation_algorithm)
         show_buddy_memory();
     else

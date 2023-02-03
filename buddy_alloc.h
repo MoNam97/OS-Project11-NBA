@@ -7,7 +7,7 @@
 #define BUDDY_MIN_BLOCK_SIZE 32
 #define BUDDY_MIN_ORDER 5
 
-#define BUDDY_BLOCK_HEADER_SIZE 16
+#define BUDDY_BLOCK_HEADER_SIZE 24
 
 typedef struct block_header {
     char is_free;
@@ -17,5 +17,6 @@ typedef struct block_header {
 
 int buddy_variable_init(int max_order, size_t memory_size, void *memory_start);
 void * mem_alloc_buddy(size_t size, char fill);
+void show_buddy_memory();
 
 #endif
