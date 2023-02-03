@@ -118,6 +118,45 @@ void add_to_free_list(block_header * block, int order) {
     block->next = NULL;   
 }
 
+void * get_buddy_block(void *block_ptr){
+    if (block_ptr == NULL){
+        return NULL;
+    }
+    if (block_ptr < ((void *)free_blocks_list[max_order_limit] + BUDDY_BLOCK_HEADER_SIZE) || block_ptr > sbrk(0)){
+        return NULL;
+    }
+    block_header * block = NULL;
+    block = (block_header *)(block_ptr - (void *)BUDDY_BLOCK_HEADER_SIZE);
+    return block;
+}
+
+void free_buddy(void *block_ptr){
+    if (block_ptr == NULL){
+        return;
+    }
+    block_header *block = get_buddy_block(block_ptr);
+    if (block == NULL){
+        return;
+    }
+    block->is_free = 1;
+    block->size = (1 << (order(block->size) + 1));
+    merge_buddy_blocks(block);
+}
+
+void merge_buddy_blocks(block_header *block){
+    block_header *buddy_block = buddy_of(block);
+    if (buddy_block != NULL && buddy_block->is_free == 1){
+        if (buddy_block < block){
+            buddy_block->next = block->next;
+            buddy_block->size = (buddy_block->size >> 1);
+        }
+        else {
+            block->next = buddy_block->next;
+            block->size = (block->size >> 1);
+        }
+    }
+}
+
 void show_buddy_memory() {
     block_header *block = (block_header *)heap_start;
     size_t allocate_size = 0;
