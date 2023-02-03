@@ -320,7 +320,7 @@ void show_stats() {
 }
 
 
-int main(){
+int main_mem_alloc(){
     printf("%d  =  %lu\n", MetaDataSize, sizeof(block_header));
     printf("%d  =  %lu\n", MetaDataSize, sizeof(MetaData));
 }
