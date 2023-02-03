@@ -27,7 +27,10 @@ void set_minimum_size(size_t size);
 
 void *my_malloc(size_t size, char fill);
 
-void *mem_alloc_first_fit(size_t size, char fill);
+void my_free(void *block_ptr);
 
+void *my_realloc(void *block_ptr, size_t size, char fill);
+
+void show_stats();
 
 #endif

@@ -196,27 +196,6 @@ MetaData * get_block(void* block_ptr){
     return block;
 }
 
-void my_free(void *block_ptr){
-    if (allocation_algorithm) {
-        free_buddy(block_ptr);
-    }
-    else {
-        free_first_fit(block_ptr);
-    }
-}
-
-void free_first_fit(void *block_ptr){
-    if (block_ptr == NULL){
-        return;
-    }
-    MetaData * block = get_block(block_ptr);
-    if (block == NULL){
-        return;
-    }
-    block->is_free = 1;
-    merge_blocks(block);
-}
-
 void merge_blocks(MetaData * curr_block){
     MetaData * prev_block = curr_block->prev;
     MetaData * next_block = curr_block->next;
@@ -249,6 +228,33 @@ void merge_blocks(MetaData * curr_block){
     }
 }
 
+void free_first_fit(void *block_ptr){
+    if (block_ptr == NULL){
+        return;
+    }
+    MetaData * block = get_block(block_ptr);
+    if (block == NULL){
+        return;
+    }
+    block->is_free = 1;
+    merge_blocks(block);
+}
+
+void my_free(void *block_ptr){
+    if (allocation_algorithm) {
+        free_buddy(block_ptr);
+    }
+    else {
+        free_first_fit(block_ptr);
+    }
+}
+
+size_t min(size_t num1, size_t num2) {
+    if (num1 < num2)
+        return num1;
+    return num2;
+}
+
 void *my_realloc(void *block_ptr, size_t size, char fill) {
     if (size <= 0) {
         my_free(block_ptr);
@@ -257,16 +263,16 @@ void *my_realloc(void *block_ptr, size_t size, char fill) {
     if (block_ptr == NULL) {
         return my_malloc(size, fill);
     }
-    MetaData * block = get_block(block_ptr);
+    MetaData * block = get_block(block_ptr); // Is this a right use of get_block?
     size_t init_size = block->size;
     char buffer[block->size];
 
-    memcpy(buffer, block->size, init_size);
+    memcpy(buffer, block->start, init_size);
 
     my_free(block_ptr);
 
     void * new_start = my_malloc(size, fill);
-    memcpy(new_start, buffer, MIN(init_size, size));
+    memcpy(new_start, buffer, min(init_size, size));
     return new_start;
 }
 
@@ -279,7 +285,7 @@ void show_first_fit() {
     printf("Allocated blocks:\n");
     while(block != NULL) {
         if(!block->is_free) {
-            printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+            printf("%p\t%p\t%ld\n", block->start, block->start + block->size, block->size);
             allocate_size += block->size;
         }
         allocate_size +=  MetaDataSize;
@@ -290,15 +296,15 @@ void show_first_fit() {
     block = blocks_head;
     while(block != NULL) {
         if (block->is_free) {
-            printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+            printf("%p\t%p\t%ld\n", block->start, block->start + block->size, block->size);
             free_size += block->size;
         }
         block = block->next;
     }
 
-    printf("\nAllocated size = %d\n", allocate_size);
-    printf("Free size = %d\n", free_size);
-    printf("sbrk minus the space devoted to blocks = %d\n", sbrk(0) - allocate_size - free_size);
+    printf("\nAllocated size = %ld\n", allocate_size);
+    printf("Free size = %ld\n", free_size);
+    printf("sbrk minus the space devoted to blocks = %p\n", sbrk(0) - allocate_size - free_size);
 }
 
 void show_stats() {

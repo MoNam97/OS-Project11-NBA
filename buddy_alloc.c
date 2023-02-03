@@ -1,5 +1,7 @@
+#include <unistd.h>
 #include <string.h>
 #include "buddy_alloc.h"
+
 
 #include <stdio.h>
 // this error message is not rgiht <<<<<<<<<<<<<<<<<<|||||||||
@@ -130,19 +132,6 @@ void * get_buddy_block(void *block_ptr){
     return block;
 }
 
-void free_buddy(void *block_ptr){
-    if (block_ptr == NULL){
-        return;
-    }
-    block_header *block = get_buddy_block(block_ptr);
-    if (block == NULL){
-        return;
-    }
-    block->is_free = 1;
-    block->size = (1 << (order(block->size) + 1));
-    merge_buddy_blocks(block);
-}
-
 void merge_buddy_blocks(block_header *block){
     block_header *buddy_block = buddy_of(block);
     if (buddy_block != NULL && buddy_block->is_free == 1){
@@ -157,6 +146,19 @@ void merge_buddy_blocks(block_header *block){
     }
 }
 
+void free_buddy(void *block_ptr){
+    if (block_ptr == NULL){
+        return;
+    }
+    block_header *block = get_buddy_block(block_ptr);
+    if (block == NULL){
+        return;
+    }
+    block->is_free = 1;
+    block->size = (1 << (order(block->size) + 1));
+    merge_buddy_blocks(block);
+}
+
 void show_buddy_memory() {
     block_header *block = (block_header *)heap_start;
     size_t allocate_size = 0;
@@ -167,7 +169,7 @@ void show_buddy_memory() {
     while (block < (block_header *)((size_t)heap_start + max_memory_size))
     {
         if (block->is_free == 0){
-            printf("%d\t%d\t%d\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
+            printf("%p\t%p\t%ld\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
             allocate_size += block->size;
         }
         allocate_size += BUDDY_BLOCK_HEADER_SIZE;
@@ -180,7 +182,8 @@ void show_buddy_memory() {
     while (block < (block_header *)((size_t)heap_start + max_memory_size))
     {
         if (block->is_free == 1){
-            printf("%d\t%d\t%d\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
+            printf("%p\t%p\t%ld\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
+            // Don't know what to change %d to in order to fix warning
             free_size += block->size;
         }
         block = (block_header *)((size_t)block + block->size + BUDDY_BLOCK_HEADER_SIZE);
@@ -188,5 +191,5 @@ void show_buddy_memory() {
 
     printf("\nAllocated size = %lu\n", allocate_size);
     printf("Free size = %lu\n", free_size);
-    printf("sbrk minus the space devoted to blocks = %lu\n", sbrk(0) - allocate_size - free_size);
+    printf("sbrk minus the space devoted to blocks = %p\n", sbrk(0) - allocate_size - free_size);
 }
