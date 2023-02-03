@@ -1,11 +1,13 @@
 #include <string.h>
 #include "buddy_alloc.h"
+
+#include <stdio.h>
 // this error message is not rgiht <<<<<<<<<<<<<<<<<<|||||||||
 char error_message[100];
 
 void * heap_start = NULL;
 int max_order_limit = 0;
-unsigned long max_memory_size = 0;
+size_t max_memory_size = 0;
 
 
 block_header *free_blocks_list[BUDDY_MAX_ORDER + 1];
@@ -75,13 +77,14 @@ void * mem_alloc_buddy(size_t size, char fill) {
         free_blocks_list[i] = free_blocks_list[i]->next;
         while (i > target_order) {
             i--;
-            block->size = block->size / 2;
+            block->size = (block->size + BUDDY_BLOCK_HEADER_SIZE) / 2 - BUDDY_BLOCK_HEADER_SIZE;
             block_header *buddy = buddy_of(block);
             buddy->size = block->size;
             buddy->next = NULL;
             free_blocks_list[i] = buddy;
         }
         block->size = size;
+        block->is_free = 0;
         memset(block + BUDDY_BLOCK_HEADER_SIZE, fill, size);
         return block + BUDDY_BLOCK_HEADER_SIZE;
     }
@@ -152,4 +155,38 @@ void merge_buddy_blocks(block_header *block){
             block->size = (block->size >> 1);
         }
     }
+}
+
+void show_buddy_memory() {
+    block_header *block = (block_header *)heap_start;
+    size_t allocate_size = 0;
+    size_t free_size = 0;
+
+    printf("Allocated blocks:\n");
+    printf("start_add\tend_add\tsize\n");
+    while (block < (block_header *)((size_t)heap_start + max_memory_size))
+    {
+        if (block->is_free == 0){
+            printf("%d\t%d\t%d\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
+            allocate_size += block->size;
+        }
+        allocate_size += BUDDY_BLOCK_HEADER_SIZE;
+        block = (block_header *)((size_t)block + block->size + BUDDY_BLOCK_HEADER_SIZE);
+    }
+
+    block = (block_header *)heap_start;
+    printf("\nFree blocks:\n");
+    printf("start_add\tend_add\tsize\n");
+    while (block < (block_header *)((size_t)heap_start + max_memory_size))
+    {
+        if (block->is_free == 1){
+            printf("%d\t%d\t%d\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
+            free_size += block->size;
+        }
+        block = (block_header *)((size_t)block + block->size + BUDDY_BLOCK_HEADER_SIZE);
+    }
+
+    printf("\nAllocated size = %lu\n", allocate_size);
+    printf("Free size = %lu\n", free_size);
+    printf("sbrk minus the space devoted to blocks = %lu\n", sbrk(0) - allocate_size - free_size);
 }

@@ -31,7 +31,7 @@ void buddy_memory_initialization(){
     void * heap_end = sbrk(max_heap_size);
     /* for test keep max_order at 8 should be BUDDY_MAX_ORDER */
     int order = 0;
-    while (heap_end != -1 && order < 8)
+    while (heap_end != (void *)-1 && order < 8)
     {
         order++;
         heap_end = sbrk(-max_heap_size);
@@ -88,7 +88,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     if (blocks_head == NULL)
     {
         blocks_head = (MetaData *)sbrk(size + MetaDataSize);
-        if (blocks_head == -1)
+        if (blocks_head == (void *)-1)
         {
             strcpy(error_message, "sbrk failed.");
             return NULL;
@@ -139,7 +139,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     /*   If there is no free block with adequate size, allocate a new block.  */
     size_t empty_space = sbrk(0) - last_block->start - last_block->size;
     MetaData *new_block = (MetaData *)sbrk(size + MetaDataSize - empty_space);
-    if (new_block == -1)
+    if (new_block == (void *)-1)
     {
         strcpy(error_message, "sbrk failed. Heap can not be extended.");
         return NULL;
@@ -270,9 +270,6 @@ void *my_realloc(void *block_ptr, size_t size, char fill) {
     return new_start;
 }
 
-void show_buddy_memory() {
-
-}
 
 void show_first_fit() {
     MetaData * block = blocks_head;
@@ -286,9 +283,10 @@ void show_first_fit() {
             allocate_size += block->size;
         }
         allocate_size +=  MetaDataSize;
-        block = get_block(block->next);
+        block = get_block(block->next); // why do you need to get the block again?? just use block->next 
+        // actually this is a bug. can you tell me why?? explain for yourself how get_block works!
     }
-
+    // where do you reset the block pointer? so that it can enter the next while loop ??
     printf("\nFree blocks:\n");
     while(block != NULL) {
         if (block->is_free) {
@@ -304,6 +302,11 @@ void show_first_fit() {
 }
 
 void show_stats() {
+    if (allocation_algorithm_set == 0)
+    {
+        strcpy(error_message, "Please set allocation algorithm first.");
+        return;
+    }
     if(allocation_algorithm)
         show_buddy_memory();
     else
@@ -312,6 +315,6 @@ void show_stats() {
 
 
 int main(){
-    
+    printf("%d  =  %lu\n", MetaDataSize, sizeof(block_header));
     printf("%d  =  %lu\n", MetaDataSize, sizeof(MetaData));
 }
