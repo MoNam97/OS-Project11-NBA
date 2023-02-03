@@ -208,16 +208,16 @@ void my_free(void *block_ptr){
     merge_blocks(block);
 }
 
-void merge_blocks(MetaData * block){
-    MetaData * prev_block = block->prev;
-    MetaData * next_block = block->next;
+void merge_blocks(MetaData * curr_block){
+    MetaData * prev_block = curr_block->prev;
+    MetaData * next_block = curr_block->next;
 
     if (prev_block != NULL && prev_block->is_free == 1) {
-        prev_block->next = block->next;
+        prev_block->next = curr_block->next;
         if (next_block != NULL) {
             next_block->prev = prev_block;
         }
-        prev_block->size = ((void *)block + MetaDataSize) - ((void *)prev_block + MetaDataSize) + block->size;
+        prev_block->size = ((void *)curr_block + MetaDataSize) - ((void *)prev_block + MetaDataSize) + curr_block->size;
 
         if (next_block != NULL && next_block->is_free == 1) {
             prev_block->next = next_block->next;
@@ -229,15 +229,76 @@ void merge_blocks(MetaData * block){
         return;
     }
     else if (next_block != NULL && next_block->is_free == 1) {
-        block->is_free = 1;
-        block->size = ((void *)next_block + MetaDataSize) - ((void *)block + MetaDataSize) + next_block->size;
-        block->next = next_block->next;
+        curr_block->is_free = 1;
+        curr_block->size = ((void *)next_block + MetaDataSize) - ((void *)curr_block + MetaDataSize) + next_block->size;
+        curr_block->next = next_block->next;
         next_block = next_block->next;
         if (next_block != NULL) {
-            next_block->prev = block;
+            next_block->prev = curr_block;
         }
         return;
     }
+}
+
+void *my_realloc(void *block_ptr, size_t size, char fill) {
+    if (size <= 0) {
+        my_free(block_ptr);
+        return NULL;
+    }
+    if (block_ptr == NULL) {
+        return my_malloc(size, fill);
+    }
+    MetaData * block = get_block(block_ptr);
+    size_t init_size = block->size;
+    char buffer[block->size];
+
+    memcpy(buffer, block->size, init_size);
+
+    my_free(block_ptr);
+
+    void * new_start = my_malloc(size, fill);
+    memcpy(new_start, buffer, MIN(init_size, size));
+    return new_start;
+}
+
+void show_buddy_memory() {
+
+}
+
+void show_first_fit() {
+    MetaData * block = blocks_head;
+    size_t allocate_size = 0;
+    size_t free_size = 0;
+    
+    printf("Allocated blocks:\n");
+    while(block != NULL) {
+        if(!block->is_free) {
+            printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+            allocate_size += block->size;
+        }
+        allocate_size +=  MetaDataSize;
+        block = get_block(block->next);
+    }
+
+    printf("\nFree blocks:\n");
+    while(block != NULL) {
+        if(block->is_free) {
+            printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+            free_size += block->size
+        }
+        block = get_block(block->next);
+    }
+
+    printf("\nAllocated size = %d\n", allocate_size);
+    printf("Free size = %d\n", free_size);
+    printf("sbrk minus the space devoted to blocks = %d\n", sbrk(0) - allocate_size - free_size);
+}
+
+void show_stats() {
+    if(allocation_algorithm)
+        show_buddy_memory();
+    else
+        show_first_fit();
 }
 
 
