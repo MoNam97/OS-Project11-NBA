@@ -85,6 +85,7 @@ void set_minimum_size(size_t size) {
 }
 
 void *mem_alloc_first_fit(size_t size, char fill) {
+    /*   initializing the first block of memory   */
     if (blocks_head == NULL)
     {
         blocks_head = (MetaData *)sbrk(size + MetaDataSize);

@@ -27,7 +27,5 @@ void set_minimum_size(size_t size);
 
 void *my_malloc(size_t size, char fill);
 
-void *mem_alloc_first_fit(size_t size, char fill);
-
 
 #endif
