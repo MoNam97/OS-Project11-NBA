@@ -197,6 +197,15 @@ MetaData * get_block(void* block_ptr){
 }
 
 void my_free(void *block_ptr){
+    if (allocation_algorithm) {
+        free_buddy(block_ptr);
+    }
+    else {
+        free_first_fit(block_ptr);
+    }
+}
+
+void free_first_fit(void *block_ptr){
     if (block_ptr == NULL){
         return;
     }
@@ -282,9 +291,9 @@ void show_first_fit() {
 
     printf("\nFree blocks:\n");
     while(block != NULL) {
-        if(block->is_free) {
+        if (block->is_free) {
             printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
-            free_size += block->size
+            free_size += block->size;
         }
         block = get_block(block->next);
     }

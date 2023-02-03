@@ -12,9 +12,11 @@
 typedef struct block_header {
   unsigned int size;
   struct block_header *next;
+  char is_free;
 } block_header;
 
 int buddy_variable_init(int max_order, size_t memory_size, void *memory_start);
 void * mem_alloc_buddy(size_t size, char fill);
+void free_buddy(void *block_ptr);
 
 #endif
