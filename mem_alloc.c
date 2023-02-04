@@ -93,6 +93,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     /*   initializing the first block of memory   */
     if (blocks_head == NULL)
     {
+        printf("-------> dif: %lu\n", (address_t)sbrk(0) - (address_t)heap_start);
         blocks_head = (MetaData *)sbrk(size + MetaDataSize);
         if (blocks_head == (void *)-1)
         {
@@ -105,8 +106,8 @@ void *mem_alloc_first_fit(size_t size, char fill) {
         blocks_head->start = (size_t)blocks_head + MetaDataSize;
         blocks_head->size = size;
         memset(blocks_head->start, fill, size);
-        printf("sbrk: %lu\tblocks_head: %lu\t blocks_head->start: %lu\t blocks_head->size: %lu\t delta:%d\n",
-         (address_t)sbrk(0), blocks_head, blocks_head->start, blocks_head->size, blocks_head->start - (address_t)blocks_head);
+        // printf("sbrk: %lu\tblocks_head: %lu\t blocks_head->start: %lu\t blocks_head->size: %lu\t delta:%d\n",
+        //  (address_t)sbrk(0), blocks_head, blocks_head->start, blocks_head->size, blocks_head->start - (address_t)blocks_head);
         return blocks_head->start;
     }
     printf("heap initialized. size: %d\n", size);
@@ -148,9 +149,18 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     /*   If there is no free block with adequate size, allocate a new block.  */
     size_t empty_space = (size_t)((address_t)sbrk(0) - (address_t)last_block->start) - last_block->size;
     MetaData *new_block = (MetaData *)sbrk(size + MetaDataSize - empty_space);
-    printf("sbrk: %lu\t last_block->start: %lu\t last_block->size: %lu\n", sbrk(0), last_block->start, last_block->size);
+    // printf("sbrk: %lu\t last_block->start: %lu\t last_block->size: %lu\n", sbrk(0), last_block->start, last_block->size);
 
-    printf("empty space: %d\t new_block: %p\n", empty_space, new_block);
+    // printf("empty space: %d\t new_block: %p\n", empty_space, new_block);
+    /////////////////////////////   For Test   /////////////////////////////
+    if ((address_t)sbrk(0) - (address_t) heap_start > 900)
+    {
+        sbrk(-(size + MetaDataSize - empty_space));
+        strcpy(mem_alloc_error_message, " Heap Limit for Test Exceeded.");
+        printf("cur:%lu\nhom:%lu\nDIF:%lu\n", (address_t)sbrk(0), (address_t)heap_start, (address_t)sbrk(0) - (address_t)heap_start);
+        return NULL;
+    }
+    ///////////////////////////////////////////////////////////////////////
     if (new_block == (void *)-1)
     {
         strcpy(mem_alloc_error_message, "sbrk failed. Heap can not be extended.");
@@ -311,7 +321,7 @@ void show_first_fit() {
     block = blocks_head;
     while(block != NULL) {
         if (block->is_free) {
-            printf("%d\t%d\t%d\n", block->start, block->start + block->size, block->size);
+            printf("%lu\t%lu\t%lu\n", block->start, block->start + block->size, block->size);
             free_size += block->size;
         }
         block = block->next;
@@ -536,7 +546,7 @@ void show_buddy_memory() {
     while (block < (block_header *)((size_t)heap_start + max_memory_size))
     {
         if (block->is_free == 0){
-            printf("%d\t%d\t%d\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
+            printf("%p\t%p\t%lu\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
             allocate_size += block->size;
         }
         allocate_size += BUDDY_BLOCK_HEADER_SIZE;
@@ -549,7 +559,7 @@ void show_buddy_memory() {
     while (block < (block_header *)((size_t)heap_start + max_memory_size))
     {
         if (block->is_free == 1){
-            printf("%d\t%d\t%d\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
+            printf("%lu\t%lu\t%lu\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
             free_size += block->size;
         }
         block = (block_header *)((size_t)block + block->size + BUDDY_BLOCK_HEADER_SIZE);
@@ -559,50 +569,3 @@ void show_buddy_memory() {
     printf("Free size = %lu\n", free_size);
     printf("sbrk minus the space devoted to blocks = %lu\n", sbrk(0) - allocate_size - free_size);
 }
-
-
-
-void check_error(void *ptr){
-    if (ptr == NULL)
-        printf("Error: %s\n", mem_alloc_error_message);  
-}
-
-int main(){
-    printf("Hello World\n");
-    int algorithm = 0;
-    set_allocation_algorithm(algorithm);
-    printf("Allocation algorithm: ");
-    if (algorithm == 0){
-        printf("First Fit\n");
-    } else if (algorithm == 1){
-        printf("Buddy Memory\n");
-    } else {
-        printf("Uninitialized\n");
-    }
-
-    char * t1 = (char *) my_malloc(1000, 's');
-    printf("t1: %p\n", t1);
-    show_stats();
-
-    char * t2 = (char *) my_malloc(64, 'z');
-    printf("t2: %p\n", t2);
-    check_error(t2);
-    show_stats();
-
-    char * t3 = (char *) my_malloc(520, 'a');
-    printf("t3: %p\n", t3);
-    check_error(t3);
-    show_stats();
-
-    char * t4 = (char *) my_malloc(76031, 'b');
-    printf("t4: %p\n", t4);
-    check_error(t4);
-    show_stats();
-
-    printf("The End\n");
-
-
-
-    return 0;
-}
-
