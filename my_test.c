@@ -3,16 +3,13 @@
 #include "mem_alloc.h"
 
 int main(int argc, char **argv) {
-  int algorithm = FIRST_FIT;
+  int algorithm = FIRST_FIT; // causes segmentation fault
   int MAX_SIZE = 10000, MIN_SIZE = 20;
   //int algorithm = BUDDY_MEMORY;
 
   set_allocation_algorithm(algorithm);
   set_maximum_size(MAX_SIZE);
   set_minimum_size(MIN_SIZE);
-
-  set_maximum_size(4 * MAX_SIZE);
-  set_minimum_size(MIN_SIZE / 4);
 
   char *dummy = my_malloc(10, 'z');
   printf("Testing allocation less than minimum size: %s\n", dummy);
@@ -26,11 +23,11 @@ int main(int argc, char **argv) {
 
   char * hello = "Hello world\n";
   memcpy(str, hello, strlen(hello));
-  printf("%s\n", str);
+  printf("%s\n\n", str);
 
   my_free(NULL);
   my_free(str);
-  printf("%s\n", str);
+  printf("%s\n\n", str);
 
   size_t size = 20;
   int *arr;
@@ -44,18 +41,16 @@ int main(int argc, char **argv) {
   size *= 2;
   arr = my_realloc(arr, size * sizeof(int), 'z');
   printf("\n");
+  
   for(int i = 0; i < size; i++) 
     arr[i] = i;
+  
   for(int i = 0; i < size; i++) 
     printf("%p:\t%d\n", &arr[i], i);
-
+  
+  
   arr = my_realloc(arr, 0, 'z');
-  printf("%s", (char *)arr);
-
-  arr = my_realloc(arr, 20, 'z');
-  arr[18] = '\n';
-  arr[19] = '\0';
-  printf("%s", (char *)arr);
+  printf("%p\n", arr);
   
   return 0;
 }

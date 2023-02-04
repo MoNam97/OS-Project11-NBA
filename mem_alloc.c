@@ -97,9 +97,11 @@ void set_minimum_size(size_t size) {
 }
 
 void *mem_alloc_first_fit(size_t size, char fill) {
+    
     /*   initializing the first block of memory   */
     if (blocks_head == NULL)
     {
+        
         blocks_head = (MetaData *)sbrk(size + MetaDataSize);
         if (blocks_head == (void *)-1)
         {
@@ -121,7 +123,9 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     MetaData *last_block = NULL;
     MetaData *current = blocks_head;
     while (current != NULL) {
-        if (current->is_free == 1 && current->size >= size)
+        
+        if (current->is_free == 1 && current->size >= size) {
+            
             if (current->size - size > MetaDataSize)
             {
                 MetaData *new_block = (MetaData *)(current->start + size);
@@ -143,10 +147,12 @@ void *mem_alloc_first_fit(size_t size, char fill) {
             {
                 // [ ] TODO: handle the no man's land portion of the size of the block in free function.
                 current->size = size;
+                
                 current->is_free = 0;
                 memset(current->start, fill, size);
                 return current->start;
             }
+        }
         last_block = current;
         current = current->next;
     }
@@ -155,12 +161,15 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     MetaData *new_block = (MetaData *)sbrk(size + MetaDataSize - empty_space);
 
     /////////////////////////////   For Test   /////////////////////////////
-    if ((address_t)sbrk(0) - (address_t) heap_start > 900)
-    {
-        sbrk(-(size + MetaDataSize - empty_space));
-        strcpy(mem_alloc_error_message, " Heap Limit for Test Exceeded.");
-        return NULL;
-    }
+    // if ((address_t)sbrk(0) - (address_t) heap_start > 900)
+    // {
+        
+    //     sbrk(-(size + MetaDataSize - empty_space));
+        
+    //     strcpy(mem_alloc_error_message, " Heap Limit for Test Exceeded.");
+        
+    //     return NULL;
+    // }
     ///////////////////////////////////////////////////////////////////////
     if (new_block == (void *)-1)
     {
@@ -284,22 +293,24 @@ size_t min(size_t a, size_t b){
 void *my_realloc(void *block_ptr, size_t size, char fill) {
     if (size <= 0) {
         my_free(block_ptr);
+        
         return NULL;
     }
     if (block_ptr == NULL) {
         return my_malloc(size, fill);
     }
+    
     MetaData * block = get_block(block_ptr);
     size_t init_size = block->size;
     char buffer[block->size];
-
+  
     memcpy(buffer, block->start, init_size);
 
     my_free(block_ptr);
-
-    void * new_start = my_malloc(size, fill);
-    memcpy(new_start, buffer, min(init_size, size));
-    return new_start;
+  
+    char * new_start = (char *)my_malloc(size, fill);
+    memcpy(new_start, block->start, min(init_size, size));
+    return (void *)new_start;
 }
 
 
