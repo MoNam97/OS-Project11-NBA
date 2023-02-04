@@ -5,7 +5,6 @@
         "errno.h": "c",
         "unistd.h": "c",
         "math.h": "c",
-        "stddef.h": "c",
-        "buddy_alloc.h": "c"
+        "stddef.h": "c"
     }
 }
