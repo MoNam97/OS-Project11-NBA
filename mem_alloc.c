@@ -93,9 +93,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     /*   initializing the first block of memory   */
     if (blocks_head == NULL)
     {
-        printf("%lu\n", sbrk(0));
         blocks_head = (MetaData *)sbrk(size + MetaDataSize);
-        printf("%lu\n", sbrk(0));
         if (blocks_head == (void *)-1)
         {
             strcpy(mem_alloc_error_message, "sbrk failed.");
@@ -107,7 +105,8 @@ void *mem_alloc_first_fit(size_t size, char fill) {
         blocks_head->start = (size_t)blocks_head + MetaDataSize;
         blocks_head->size = size;
         memset(blocks_head->start, fill, size);
-        printf("sbrk: %lu\tblocks_head: %lu\t blocks_head->start: %lu\t blocks_head->size: %lu\t delta:%d\n", (unsigned long)sbrk(0), blocks_head, blocks_head->start, blocks_head->size, blocks_head->start - (unsigned long)blocks_head);
+        printf("sbrk: %lu\tblocks_head: %lu\t blocks_head->start: %lu\t blocks_head->size: %lu\t delta:%d\n",
+         (address_t)sbrk(0), blocks_head, blocks_head->start, blocks_head->size, blocks_head->start - (address_t)blocks_head);
         return blocks_head->start;
     }
     printf("heap initialized. size: %d\n", size);
@@ -127,7 +126,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
                 current->next = new_block;
 
                 new_block->is_free = 1;
-                new_block->start = (size_t)new_block + MetaDataSize;
+                new_block->start = (address_t)new_block + MetaDataSize;
                 new_block->size = current->size - size - MetaDataSize;
                 current->is_free = 0;
                 current->size = size;
@@ -147,9 +146,9 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     }
     printf("no free block with adequate size. size: %d\n", size);
     /*   If there is no free block with adequate size, allocate a new block.  */
-    size_t empty_space = (size_t)(sbrk(0) - (unsigned long)last_block->start) - last_block->size;
-    printf("sbrk: %lu\t last_block->start: %lu\t last_block->size: %lu\n", sbrk(0), last_block->start, last_block->size);
+    size_t empty_space = (size_t)((address_t)sbrk(0) - (address_t)last_block->start) - last_block->size;
     MetaData *new_block = (MetaData *)sbrk(size + MetaDataSize - empty_space);
+    printf("sbrk: %lu\t last_block->start: %lu\t last_block->size: %lu\n", sbrk(0), last_block->start, last_block->size);
 
     printf("empty space: %d\t new_block: %p\n", empty_space, new_block);
     if (new_block == (void *)-1)
@@ -162,7 +161,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     new_block->prev = last_block;
     last_block->next = new_block;
     new_block->is_free = 0;
-    new_block->start = new_block + MetaDataSize;
+    new_block->start = (address_t)new_block + MetaDataSize;
     new_block->size = size;
     memset(new_block->start, fill, size);
     return new_block->start;
@@ -355,13 +354,13 @@ int buddy_variable_init(int max_order, size_t memory_size, void *memory_start) {
     free_blocks_list[max_order] = first_block;
 }
 
-int my_log2(unsigned int size) {
+int my_log2(size_t size) {
   int i;
   for (i = 0; (1 << i) < size; i++);
   return i;
 }
 
-int order(unsigned int size) {
+int order(size_t size) {
   return my_log2(size) - my_log2(BUDDY_MIN_BLOCK_SIZE);
 }
 
@@ -379,8 +378,8 @@ block_header *buddy_of(block_header *block) {
     if (size_mask == max_memory_size)
         return NULL;
     
-    block_header* relative_address =  (block_header *)(((unsigned long)block - (unsigned long)heap_start) ^ size_mask);
-    return (unsigned long)relative_address + (unsigned long)heap_start;
+    block_header* relative_address =  (block_header *)(((address_t)block - (address_t)heap_start) ^ size_mask);
+    return (address_t)relative_address + (address_t)heap_start;
 }
 
 
@@ -563,11 +562,14 @@ void show_buddy_memory() {
 
 
 
-
+void check_error(void *ptr){
+    if (ptr == NULL)
+        printf("Error: %s\n", mem_alloc_error_message);  
+}
 
 int main(){
     printf("Hello World\n");
-    int algorithm = 1;
+    int algorithm = 0;
     set_allocation_algorithm(algorithm);
     printf("Allocation algorithm: ");
     if (algorithm == 0){
@@ -578,15 +580,29 @@ int main(){
         printf("Uninitialized\n");
     }
 
-    char * t1 = (char *) my_malloc(100, 's');
+    char * t1 = (char *) my_malloc(1000, 's');
     printf("t1: %p\n", t1);
     show_stats();
 
     char * t2 = (char *) my_malloc(64, 'z');
     printf("t2: %p\n", t2);
+    check_error(t2);
     show_stats();
+
+    char * t3 = (char *) my_malloc(520, 'a');
+    printf("t3: %p\n", t3);
+    check_error(t3);
+    show_stats();
+
+    char * t4 = (char *) my_malloc(76031, 'b');
+    printf("t4: %p\n", t4);
+    check_error(t4);
+    show_stats();
+
     printf("The End\n");
+
 
 
     return 0;
 }
+

@@ -9,6 +9,8 @@
 
 #define MetaDataSize 40
 
+typedef unsigned long long address_t;
+
 extern char mem_alloc_error_message[];
 
 typedef struct MetaData {
