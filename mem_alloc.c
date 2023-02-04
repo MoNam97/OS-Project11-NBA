@@ -24,6 +24,13 @@ MetaData *blocks_head = NULL;
 block_header *free_blocks_list[BUDDY_MAX_ORDER + 1];
 
 
+int buddy_variable_init(int max_order, size_t memory_size, void *memory_start);
+
+void * mem_alloc_buddy(size_t size, char fill);
+
+void free_buddy(void *block_ptr);
+
+void show_buddy_memory();
 
 void first_fit_initialization(){
     heap_start = sbrk(0);
@@ -93,7 +100,6 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     /*   initializing the first block of memory   */
     if (blocks_head == NULL)
     {
-        printf("-------> dif: %lu\n", (address_t)sbrk(0) - (address_t)heap_start);
         blocks_head = (MetaData *)sbrk(size + MetaDataSize);
         if (blocks_head == (void *)-1)
         {
@@ -103,14 +109,13 @@ void *mem_alloc_first_fit(size_t size, char fill) {
         blocks_head->next = NULL;
         blocks_head->prev = NULL;
         blocks_head->is_free = 0;
-        blocks_head->start = (size_t)blocks_head + MetaDataSize;
+        blocks_head->start = (void *)((size_t)blocks_head + MetaDataSize);
         blocks_head->size = size;
         memset(blocks_head->start, fill, size);
         // printf("sbrk: %lu\tblocks_head: %lu\t blocks_head->start: %lu\t blocks_head->size: %lu\t delta:%d\n",
         //  (address_t)sbrk(0), blocks_head, blocks_head->start, blocks_head->size, blocks_head->start - (address_t)blocks_head);
         return blocks_head->start;
     }
-    printf("heap initialized. size: %d\n", size);
 
     /*   If there is a free block with adequate size, allocate the new block to it.  */
     MetaData *last_block = NULL;
@@ -127,7 +132,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
                 current->next = new_block;
 
                 new_block->is_free = 1;
-                new_block->start = (address_t)new_block + MetaDataSize;
+                new_block->start = (void *)((address_t)new_block + MetaDataSize);
                 new_block->size = current->size - size - MetaDataSize;
                 current->is_free = 0;
                 current->size = size;
@@ -145,19 +150,15 @@ void *mem_alloc_first_fit(size_t size, char fill) {
         last_block = current;
         current = current->next;
     }
-    printf("no free block with adequate size. size: %d\n", size);
     /*   If there is no free block with adequate size, allocate a new block.  */
     size_t empty_space = (size_t)((address_t)sbrk(0) - (address_t)last_block->start) - last_block->size;
     MetaData *new_block = (MetaData *)sbrk(size + MetaDataSize - empty_space);
-    // printf("sbrk: %lu\t last_block->start: %lu\t last_block->size: %lu\n", sbrk(0), last_block->start, last_block->size);
 
-    // printf("empty space: %d\t new_block: %p\n", empty_space, new_block);
     /////////////////////////////   For Test   /////////////////////////////
     if ((address_t)sbrk(0) - (address_t) heap_start > 900)
     {
         sbrk(-(size + MetaDataSize - empty_space));
         strcpy(mem_alloc_error_message, " Heap Limit for Test Exceeded.");
-        printf("cur:%lu\nhom:%lu\nDIF:%lu\n", (address_t)sbrk(0), (address_t)heap_start, (address_t)sbrk(0) - (address_t)heap_start);
         return NULL;
     }
     ///////////////////////////////////////////////////////////////////////
@@ -171,7 +172,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     new_block->prev = last_block;
     last_block->next = new_block;
     new_block->is_free = 0;
-    new_block->start = (address_t)new_block + MetaDataSize;
+    new_block->start = (void *)((address_t)new_block + MetaDataSize);
     new_block->size = size;
     memset(new_block->start, fill, size);
     return new_block->start;
@@ -198,12 +199,10 @@ void *my_malloc(size_t size, char fill) {
     }
     if (allocation_algorithm == 0)
     {
-        printf("First fit algorithm is used.\n");
         return mem_alloc_first_fit(size, fill);
     }
     else
     {
-        printf("Buddy memory algorithm is used.\n");
         return mem_alloc_buddy(size, fill);
     }
 }
@@ -216,7 +215,9 @@ MetaData * get_block(void* block_ptr){
         return NULL;
     }
     MetaData * block = NULL;
-    block = (MetaData *)(block_ptr - (void*)MetaDataSize);
+    block = (MetaData *)((address_t)block_ptr - MetaDataSize);
+    if (block->is_free == 1)
+        return NULL;
     return block;
 }
 
@@ -321,7 +322,7 @@ void show_first_fit() {
     block = blocks_head;
     while(block != NULL) {
         if (block->is_free) {
-            printf("%lu\t%lu\t%lu\n", block->start, block->start + block->size, block->size);
+            printf("%p\t%p\t%lu\n", block->start, block->start + block->size, block->size);
             free_size += block->size;
         }
         block = block->next;
@@ -342,6 +343,7 @@ void show_stats() {
         show_buddy_memory();
     else
         show_first_fit();
+    printf("\n\n");
 }
 
 ////////////////////////// Buddy System //////////////////////////
@@ -359,6 +361,7 @@ int buddy_variable_init(int max_order, size_t memory_size, void *memory_start) {
         free_blocks_list[i] = NULL;
     }
     block_header *first_block = (block_header *)memory_start;
+    first_block->is_free = 1;
     first_block->size = memory_size - BUDDY_BLOCK_HEADER_SIZE;
     first_block->next = NULL;
     free_blocks_list[max_order] = first_block;
@@ -384,12 +387,11 @@ int order(size_t size) {
 */
 block_header *buddy_of(block_header *block) {
     unsigned long size_mask = (unsigned long)(1 << my_log2(block->size + BUDDY_BLOCK_HEADER_SIZE));
-    printf("size_mask = %lu\n", size_mask);
     if (size_mask == max_memory_size)
         return NULL;
     
     block_header* relative_address =  (block_header *)(((address_t)block - (address_t)heap_start) ^ size_mask);
-    return (address_t)relative_address + (address_t)heap_start;
+    return (block_header *)((address_t)relative_address + (address_t)heap_start);
 }
 
 
@@ -405,38 +407,25 @@ void * mem_alloc_buddy(size_t size, char fill) {
      * so we start from the target_order and go up until we find a free block
      * all indexes before found one are guaranteed to be empty.
     */
-    printf("target order = %d, max order limit = %d, size = %lu, fill = %c\n", target_order, max_order_limit, size, fill);
-    for (int i = 0; i < max_order_limit + 1; i++)
-    {
-        if (free_blocks_list[i] != NULL)
-            printf("free_blocks_list[%d] = %p\n", i, free_blocks_list[i]);
-    }
-    
     for (int i = target_order; i <= max_order_limit; i++) {
         if (free_blocks_list[i] == NULL) {
             continue;
         }
-        printf("i = %d, free_blocks_list[i] = %p\n", i, free_blocks_list[i]);
         block_header *block = free_blocks_list[i];
         free_blocks_list[i] = free_blocks_list[i]->next;
         while (i > target_order) {
             i--;
-            printf("size = %lu, i = %d, block = %lu\n", block->size, i, block);
             block->size = (block->size + BUDDY_BLOCK_HEADER_SIZE) / 2 - BUDDY_BLOCK_HEADER_SIZE;
-            printf("size = %lu, i = %d, block = %lu\n", block->size, i, block);
             block_header *buddy = buddy_of(block);
-            printf("buddy = %lu\n", buddy);
-            printf("%p\n%p\n",block, buddy);
-
             buddy->size = block->size;
+            buddy->is_free = 1;
             buddy->next = NULL;
             free_blocks_list[i] = buddy;
-            printf("%p\n%p\n",block, buddy);
         }
         block->size = size;
         block->is_free = 0;
-        memset(block + BUDDY_BLOCK_HEADER_SIZE, fill, size);
-        return block + BUDDY_BLOCK_HEADER_SIZE;
+        memset((void *)((address_t)block + BUDDY_BLOCK_HEADER_SIZE), fill, size);
+        return (void *)((address_t)block + BUDDY_BLOCK_HEADER_SIZE);
     }
 
     strcpy(mem_alloc_error_message, "No free blocks with adequate size available.");
@@ -487,17 +476,14 @@ void remove_from_free_list(block_header * block, int b_order) {
 }
 
 void * get_buddy_block(void *block_ptr){
-    // if (block_ptr == NULL){
-    //     return NULL;
-    // }
-    // if (block_ptr < ((void *)free_blocks_list[max_order_limit] + BUDDY_BLOCK_HEADER_SIZE) || block_ptr > sbrk(0)){
-    //     return NULL;
-    // } what is this for?
     if (block_ptr == NULL || block_ptr < heap_start || block_ptr >= sbrk(0)){
         return NULL;
     }
     block_header * block = NULL;
-    block = (block_header *)(block_ptr - (void *)BUDDY_BLOCK_HEADER_SIZE);
+    block = (block_header *)((address_t)block_ptr - BUDDY_BLOCK_HEADER_SIZE);
+
+    if (block->is_free == 1)
+        return NULL;
     return block;
 }
 
@@ -506,13 +492,13 @@ void merge_buddy_blocks(block_header *block, int b_order){
     if (buddy_block != NULL && buddy_block->is_free == 1){
         if (buddy_block < block){
             buddy_block->next = NULL;
-            buddy_block->size = (1 << (b_order+1)) - BUDDY_BLOCK_HEADER_SIZE;
+            buddy_block->size = (1 << (b_order + BUDDY_MIN_ORDER + 1)) - BUDDY_BLOCK_HEADER_SIZE;
             remove_from_free_list(buddy_block, b_order);
             merge_buddy_blocks(buddy_block, b_order + 1);
         }
         else {
             block->next = NULL;
-            block->size = (1 << (b_order+1)) - BUDDY_BLOCK_HEADER_SIZE;
+            block->size = (1 << (b_order + BUDDY_MIN_ORDER + 1)) - BUDDY_BLOCK_HEADER_SIZE;
             remove_from_free_list(buddy_block, b_order);
             merge_buddy_blocks(block, b_order + 1);
         }
@@ -523,16 +509,13 @@ void merge_buddy_blocks(block_header *block, int b_order){
 }
 
 void free_buddy(void *block_ptr){
-    // if (block_ptr == NULL){
-    //     return;
-    // }    like I said, this is not needed, because get_buddy_block will return NULL if block_ptr is NULL
     block_header *block = get_buddy_block(block_ptr);
     if (block == NULL){
         return;
     }
     block->is_free = 1;
     int block_order = order(block->size + BUDDY_BLOCK_HEADER_SIZE);
-    block->size = (1 << block_order) - BUDDY_BLOCK_HEADER_SIZE; 
+    block->size = (1 << block_order + BUDDY_MIN_ORDER) - BUDDY_BLOCK_HEADER_SIZE; 
     merge_buddy_blocks(block, block_order);
 }
 
@@ -542,30 +525,34 @@ void show_buddy_memory() {
     size_t free_size = 0;
 
     printf("Allocated blocks:\n");
-    printf("start_add\tend_add\tsize\n");
+    printf("  start_add        end_add      size\n");
     while (block < (block_header *)((size_t)heap_start + max_memory_size))
     {
         if (block->is_free == 0){
-            printf("%p\t%p\t%lu\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
+            printf("%p\t%p\t%lu\n", (void *)((address_t)block + BUDDY_BLOCK_HEADER_SIZE),
+             (void *)((address_t)block + BUDDY_BLOCK_HEADER_SIZE + block->size - 1) , block->size);
             allocate_size += block->size;
         }
         allocate_size += BUDDY_BLOCK_HEADER_SIZE;
-        block = (block_header *)((size_t)block + block->size + BUDDY_BLOCK_HEADER_SIZE);
+        size_t block_size = 1 << my_log2(block->size + BUDDY_BLOCK_HEADER_SIZE);
+        block = (block_header *)((address_t)block + block_size);
     }
 
     block = (block_header *)heap_start;
     printf("\nFree blocks:\n");
-    printf("start_add\tend_add\tsize\n");
-    while (block < (block_header *)((size_t)heap_start + max_memory_size))
+    printf("  start_add        end_add      size\n");
+    while (block < (block_header *)((address_t)heap_start + max_memory_size))
     {
         if (block->is_free == 1){
-            printf("%lu\t%lu\t%lu\n", block + BUDDY_BLOCK_HEADER_SIZE, block + BUDDY_BLOCK_HEADER_SIZE + block->size -1 , block->size);
+            printf("%p\t%p\t%lu\n", (void *)((address_t)block + BUDDY_BLOCK_HEADER_SIZE),
+             (void *)((address_t)block + BUDDY_BLOCK_HEADER_SIZE + block->size - 1) , block->size);
             free_size += block->size;
         }
-        block = (block_header *)((size_t)block + block->size + BUDDY_BLOCK_HEADER_SIZE);
+        size_t block_size = 1 << my_log2(block->size + BUDDY_BLOCK_HEADER_SIZE);
+        block = (block_header *)((address_t)block + block_size);
     }
 
     printf("\nAllocated size = %lu\n", allocate_size);
     printf("Free size = %lu\n", free_size);
-    printf("sbrk minus the space devoted to blocks = %lu\n", sbrk(0) - allocate_size - free_size);
+    printf("sbrk minus the space devoted to blocks = %p\n", (void *)((address_t)sbrk(0) - allocate_size - free_size));
 }
