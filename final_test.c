@@ -9,8 +9,9 @@ void check_error(void *ptr){
 
 int main(){
 
-    printf("Hello World\n");
-    int algorithm = 1;
+    printf("Choose allocation algorithm(0 for First Fit, 1 for Buddy System): ");
+    int algorithm = -1;
+    scanf("%d", &algorithm);
     set_allocation_algorithm(algorithm);
     printf("Allocation algorithm: ");
     if (algorithm == 0){
@@ -19,6 +20,7 @@ int main(){
         printf("Buddy Memory\n");
     } else {
         printf("Uninitialized\n");
+        algorithm = -1;
     }
 
     if (algorithm == 0){
@@ -56,7 +58,7 @@ int main(){
         
         char_ptr[0] = (char *) my_realloc(char_ptr[0], 200, 'z');
         show_stats();
-        char_ptr[1] = (char *) my_realloc(char_ptr[1], 200, 'z');
+        char_ptr[1] = (char *) my_realloc(char_ptr[1], 200, 'x');
         show_stats();
 
 

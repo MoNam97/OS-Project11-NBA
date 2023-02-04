@@ -4,8 +4,8 @@
 #include "mem_alloc.h"
 
 #include <stdio.h>
-// [ ] TODO: Handle Thread Safety
-
+/*  Handle Thread Safety    */
+pthread_mutex_t mem_lock;
 char mem_alloc_error_message[100];
 
 int allocation_algorithm_set = 0;
@@ -59,9 +59,12 @@ void buddy_memory_initialization(){
     buddy_variable_init(order, max_heap_size, heap_start);
 }
 
+/*  this function should not be called with multiple threads    */
 void set_allocation_algorithm(int algorithm) {
+    
     if (allocation_algorithm_set == 0)
     {
+        pthread_mutex_init(&mem_lock, NULL);
         allocation_algorithm_set = 1;
         allocation_algorithm = algorithm;
         if (algorithm == FIRST_FIT)
@@ -106,6 +109,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
         if (blocks_head == (void *)-1)
         {
             strcpy(mem_alloc_error_message, "sbrk failed.");
+            pthread_mutex_unlock(&mem_lock);
             return NULL;
         }
         blocks_head->next = NULL;
@@ -114,8 +118,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
         blocks_head->start = (void *)((size_t)blocks_head + MetaDataSize);
         blocks_head->size = size;
         memset(blocks_head->start, fill, size);
-        // printf("sbrk: %lu\tblocks_head: %lu\t blocks_head->start: %lu\t blocks_head->size: %lu\t delta:%d\n",
-        //  (address_t)sbrk(0), blocks_head, blocks_head->start, blocks_head->size, blocks_head->start - (address_t)blocks_head);
+        pthread_mutex_unlock(&mem_lock);
         return blocks_head->start;
     }
 
@@ -141,15 +144,15 @@ void *mem_alloc_first_fit(size_t size, char fill) {
                 current->is_free = 0;
                 current->size = size;
                 memset(current->start, fill, size);
+                pthread_mutex_unlock(&mem_lock);
                 return current->start;
             }
             else
             {
-                // [ ] TODO: handle the no man's land portion of the size of the block in free function.
-                current->size = size;
-                
+                current->size = size;                
                 current->is_free = 0;
                 memset(current->start, fill, size);
+                pthread_mutex_unlock(&mem_lock);
                 return current->start;
             }
         }
@@ -167,13 +170,14 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     //     sbrk(-(size + MetaDataSize - empty_space));
         
     //     strcpy(mem_alloc_error_message, " Heap Limit for Test Exceeded.");
-        
+    //     pthread_mutex_unlock(&mem_lock);
     //     return NULL;
     // }
     ///////////////////////////////////////////////////////////////////////
     if (new_block == (void *)-1)
     {
         strcpy(mem_alloc_error_message, "sbrk failed. Heap can not be extended.");
+        pthread_mutex_unlock(&mem_lock);
         return NULL;
     }
     new_block -= empty_space;
@@ -184,6 +188,7 @@ void *mem_alloc_first_fit(size_t size, char fill) {
     new_block->start = (void *)((address_t)new_block + MetaDataSize);
     new_block->size = size;
     memset(new_block->start, fill, size);
+    pthread_mutex_unlock(&mem_lock);
     return new_block->start;
 }
 
@@ -206,6 +211,8 @@ void *my_malloc(size_t size, char fill) {
         strcpy(mem_alloc_error_message, "Requested size is smaller than minimum size.");
         return NULL;
     }
+
+    pthread_mutex_lock(&mem_lock);
     if (allocation_algorithm == 0)
     {
         return mem_alloc_first_fit(size, fill);
@@ -263,18 +270,18 @@ void merge_blocks(MetaData * curr_block){
 }
 
 void free_first_fit(void *block_ptr){
-    // if (block_ptr == NULL){
-    //     return;
-    // }    get_block handles checking for NULL
     MetaData * block = get_block(block_ptr);
     if (block == NULL){
+        pthread_mutex_unlock(&mem_lock);
         return;
     }
     block->is_free = 1;
     merge_blocks(block);
+    pthread_mutex_unlock(&mem_lock);
 }
 
 void my_free(void *block){
+    pthread_mutex_lock(&mem_lock);
     if (allocation_algorithm) {
         free_buddy(block);
     }
@@ -293,7 +300,6 @@ size_t min(size_t a, size_t b){
 void *my_realloc(void *block_ptr, size_t size, char fill) {
     if (size <= 0) {
         my_free(block_ptr);
-        
         return NULL;
     }
     if (block_ptr == NULL) {
@@ -303,13 +309,17 @@ void *my_realloc(void *block_ptr, size_t size, char fill) {
     MetaData * block = get_block(block_ptr);
     size_t init_size = block->size;
     char buffer[block->size];
-  
+    
     memcpy(buffer, block->start, init_size);
 
     my_free(block_ptr);
-  
+    
     char * new_start = (char *)my_malloc(size, fill);
-    memcpy(new_start, block->start, min(init_size, size));
+    if (new_start == NULL) {
+        strcpy(mem_alloc_error_message, "Cannot reallocate new memory.");
+        return NULL;
+    }
+    memcpy(new_start, buffer, min(init_size, size));
     return (void *)new_start;
 }
 
@@ -410,6 +420,7 @@ void * mem_alloc_buddy(size_t size, char fill) {
     int target_order = order(size + BUDDY_BLOCK_HEADER_SIZE);
     if (target_order > max_order_limit) {
         strcpy(mem_alloc_error_message, "Requested size is too large");
+        pthread_mutex_unlock(&mem_lock);
         return NULL;
     }
     /*
@@ -436,10 +447,12 @@ void * mem_alloc_buddy(size_t size, char fill) {
         block->size = size;
         block->is_free = 0;
         memset((void *)((address_t)block + BUDDY_BLOCK_HEADER_SIZE), fill, size);
+        pthread_mutex_unlock(&mem_lock);
         return (void *)((address_t)block + BUDDY_BLOCK_HEADER_SIZE);
     }
 
     strcpy(mem_alloc_error_message, "No free blocks with adequate size available.");
+    pthread_mutex_unlock(&mem_lock);
     return NULL;
 }
 
@@ -522,12 +535,14 @@ void merge_buddy_blocks(block_header *block, int b_order){
 void free_buddy(void *block_ptr){
     block_header *block = get_buddy_block(block_ptr);
     if (block == NULL){
+        pthread_mutex_unlock(&mem_lock);
         return;
     }
     block->is_free = 1;
     int block_order = order(block->size + BUDDY_BLOCK_HEADER_SIZE);
     block->size = (1 << block_order + BUDDY_MIN_ORDER) - BUDDY_BLOCK_HEADER_SIZE; 
     merge_buddy_blocks(block, block_order);
+    pthread_mutex_unlock(&mem_lock);
 }
 
 void show_buddy_memory() {
